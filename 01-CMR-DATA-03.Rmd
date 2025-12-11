@@ -1,0 +1,249 @@
+---
+title: "01-CMR-DATA-03"
+author: "Sophia Volzke"
+date: "2023-11-23"
+output: html_document
+---
+
+
+
+# Setup
+
+```{r message=FALSE}
+library(tidyverse)
+```
+
+# Data
+
+Import Data
+```{r}
+dsights <- read_csv("TAGS_ELLIE_SIGHTINGS6_Share.csv", na = "n/a")
+```
+
+Manipulate and filter
+```{r}
+dsights <- select(dsights, SEAL_ID, DATE_OBSERVED, WEIGHT, MASTER_TAG_TYPE, MASTER_SEX = MASTER_SEX_CHECKED,SEX_ON_SIGHTING, SEAL_STATUS_ID, AGE_CLASS_ID) 
+
+dsights$DATE_OBSERVED <- strptime(dsights$DATE_OBSERVED,"%d/%m/%Y",tz="GMT")
+dsights$SEAL_ID <- as.integer(dsights$SEAL_ID) 
+dsights$SEAL_STATUS_ID <- as.integer(dsights$SEAL_STATUS_ID) 
+dsights$AGE_CLASS_ID <- as.integer(dsights$AGE_CLASS_ID)
+
+dsights$Year <- dsights$DATE_OBSERVED$year+1900
+dsights$Month <- dsights$DATE_OBSERVED$mon+1
+dsights$Season <- dsights$Year + ifelse(dsights$Month >= 8,1,0) # AUGUST
+
+## Convert unknown Age Class to NA
+dsights$AGE_CLASS_ID[!is.na(dsights$AGE_CLASS_ID) & dsights$AGE_CLASS_ID==99] <- NA
+## Drop the seen dead for now
+dsights <- dsights[is.na(dsights$AGE_CLASS_ID) | dsights$AGE_CLASS_ID!=50,]
+ 
+head(dsights)
+```
+
+Tagged as Pups
+```{r}
+dsights <- dsights %>%
+  group_by(SEAL_ID) %>%
+  arrange(SEAL_ID, DATE_OBSERVED) %>%
+  mutate(AGE_CLASS_ID = as.numeric(AGE_CLASS_ID),
+         TAGGED_AS_PUP = if_else(row_number()==1 & AGE_CLASS_ID<10, TRUE, FALSE),
+         TAGGED_AS_PUP = if_else(any(TAGGED_AS_PUP==TRUE), TRUE, FALSE)) %>%
+  filter(TAGGED_AS_PUP == TRUE) %>% #filter out any seals not tagged as pups
+  mutate(AGE = Season - min(Season))
+         
+#filter out unknown sex individuals (167 in whole dataset)
+dsights <- dsights %>%
+  filter(MASTER_SEX!= "U")
+```
+
+```{r}
+length(unique(dsights$SEAL_ID))
+```
+
+
+
+# Subset
+
+Create TAG_Season column
+```{r}
+dsights <- dsights %>%
+  group_by(SEAL_ID) %>%
+  arrange(SEAL_ID, DATE_OBSERVED) %>%
+  mutate("TAG_Season" = min(Season))
+head(dsights)
+```
+
+
+## Clean Data
+
+```{r}
+dsights$AGE_CLASS_ID[is.na(dsights$AGE_CLASS_ID)] <- 0
+
+dsights <- dsights%>%
+  mutate("ADULT"= if_else(AGE>=6|AGE_CLASS_ID == 40, TRUE,FALSE))%>%
+  mutate(AGE_CLASS_ID= if_else(ADULT == "TRUE" & Month %in% c(8:11), 41, AGE_CLASS_ID)) %>% #seen breeding
+  mutate(BAD= if_else(MASTER_TAG_TYPE == "T" & TAG_Season > 1980, TRUE, FALSE)) %>%
+  filter(BAD==FALSE)%>%
+  mutate(BAD= if_else(MASTER_TAG_TYPE == "#N/A" & TAG_Season > 1980, TRUE, FALSE)) %>%
+  filter(BAD==FALSE)
+head(dsights)
+```
+
+Total number of individuals in whole dataset:
+
+```{r}
+length(unique(dsights$SEAL_ID))
+```
+
+## Female subset
+```{r}
+dsights2.F <- dsights%>%
+  filter(MASTER_SEX=="F")
+
+length(unique(dsights2.F$SEAL_ID))
+```
+## 1980 subset
+
+1980 subset
+```{r}
+dsights2.F.80 <- dsights2.F%>%
+  filter(TAG_Season>1980)
+
+length(unique(dsights2.F.80$SEAL_ID))
+```
+
+```{r}
+summary(dsights2.F.80$Season)
+```
+```{r}
+dsights2.F.80.unique <- dsights2.F.80 %>%
+  group_by(SEAL_ID) %>%
+  filter(row_number()==1)
+head(dsights2.F.80.unique)
+```
+
+
+
+```{r}
+ggplot(dsights2.F.80.unique,aes(TAG_Season))+
+  geom_histogram()
+
+```
+
+
+
+
+
+# Capture Histories1 (CH)
+
+Make encounter history data frame
+These steps are documented in numbers to check the data comes through correctly.
+```{r}
+CH_full <- dsights2.F.80%>%
+  select(SEAL_ID,Season,AGE_CLASS_ID,ADULT)
+head(CH_full )
+```
+
+
+
+```{r}
+#states: seen juvenile (1), seen breeding (2) + adults (not seen breeding also 2)
+CH_full <- CH_full %>%
+  mutate(Breed = if_else(AGE_CLASS_ID==41, TRUE, FALSE))%>%
+  select(SEAL_ID,Season,Breed,ADULT)%>%
+  group_by(SEAL_ID, Season)%>%
+  mutate(state= case_when(any(Breed==TRUE)~ 2, TRUE~1)) %>%
+  mutate(state= case_when(state==1& ADULT==TRUE~ 2, TRUE~state))%>%
+  mutate(state= case_when(any(state==2)~ 2, TRUE~state))%>% #any seen breeding in the same year as not, keep 2 (seen breeding)
+  group_by(SEAL_ID, Season)%>%
+  distinct(state)%>%
+  ungroup()
+```
+
+```{r}
+table(CH_full$Season)
+```
+
+```{r}
+head(CH_full)
+```
+
+```{r}
+df_full <- CH_full 
+```
+
+```{r}
+# Assuming df is the original data frame with columns 'SEAL_ID', 'Season', and 'State'
+# Specify the start and end seasons
+start_season <- min(1981)
+end_season <- max(2024) #df_full$Season
+
+# Create a set of unique individuals, unique dates, and unique states
+unique_individuals <- unique(df_full$SEAL_ID)
+unique_dates <- as.character(seq(start_season, end_season))
+
+# Create an empty matrix to store the capture history
+ch_matrix_full <- matrix(0, nrow = length(unique_individuals), ncol = length(unique_dates))
+
+# Set the row names to the unique individuals
+rownames(ch_matrix_full) <- unique_individuals
+
+# Set the column names to the unique dates
+colnames(ch_matrix_full) <- unique_dates
+
+# Populate the capture history matrix based on the original data
+for (i in 1:nrow(df_full)) {
+  row_index <- match(df_full$SEAL_ID[i], rownames(ch_matrix_full))
+  col_index <- match(df_full$Season[i], colnames(ch_matrix_full))
+  ch_matrix_full[row_index, col_index] <- df_full$state[i]
+}
+
+# Convert the matrix to a data frame
+capture_history_df_full <- as.data.frame(ch_matrix_full)
+
+# Display the resulting capture history data frame
+head(capture_history_df_full)
+
+```
+
+
+
+## Check data
+
+How many years in matrix? 
+```{r}
+ncol(ch_matrix_full)
+ncol(capture_history_df_full)
+```
+
+
+```{r}
+# Define the transform_row function
+transform_row <- function(row) {
+  first_2_index <- which(row == 2)[1]
+  if (!is.na(first_2_index)) {
+    row[first_2_index:length(row)] <- replace(row[first_2_index:length(row)], row[first_2_index:length(row)] %in% c(1, 2), 2)
+  }
+  return(row)
+}
+
+# Apply the transform_row function row-wise using dplyr
+ch_transformed_full <- ch_matrix_full %>%
+  apply(1, transform_row) %>%
+  matrix(nrow = nrow(ch_matrix_full), byrow = TRUE)
+
+```
+
+
+Check for example
+```{r}
+ch_matrix_full[3034,]
+ch_transformed_full[3034,]
+```
+
+
+
+
+
+
