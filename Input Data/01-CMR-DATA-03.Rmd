@@ -11,14 +11,28 @@ output: html_document
 
 ```{r message=FALSE}
 library(tidyverse)
+# Dependencies: tidyverse + lubridate only
+library(dplyr)
+library(stringr)
+library(lubridate)
+
 ```
 
 # Data
 
+Capture-mark-recapture records of Macquarie Island southern elephant seals 
+are published and available open access: 
+https://doi.org/10.25959/W2SC-E717 
+
 Import Data
 ```{r}
-dsights <- read_csv("TAGS_ELLIE_SIGHTINGS6_Share.csv", na = "n/a")
+
+dsights <- read_csv("../../../Data/TAGS_ELLIE_SIGHTINGS.csv", na = "n/a")
+
 ```
+
+## Manipulate and filter
+
 
 Manipulate and filter
 ```{r}
@@ -35,13 +49,17 @@ dsights$Season <- dsights$Year + ifelse(dsights$Month >= 8,1,0) # AUGUST
 
 ## Convert unknown Age Class to NA
 dsights$AGE_CLASS_ID[!is.na(dsights$AGE_CLASS_ID) & dsights$AGE_CLASS_ID==99] <- NA
-## Drop the seen dead for now
+## Drop seen dead records
 dsights <- dsights[is.na(dsights$AGE_CLASS_ID) | dsights$AGE_CLASS_ID!=50,]
  
 head(dsights)
 ```
 
-Tagged as Pups
+Tagged as Pups: 
+Ensures no seals included that may have been part of another study that tagged them as adults.
+
+Unknown sex: also filter out
+
 ```{r}
 dsights <- dsights %>%
   group_by(SEAL_ID) %>%
@@ -61,11 +79,9 @@ dsights <- dsights %>%
 length(unique(dsights$SEAL_ID))
 ```
 
+# Subset 
 
-
-# Subset
-
-Create TAG_Season column
+Create TAG_Season column (Seal season = from August to July the following year)
 ```{r}
 dsights <- dsights %>%
   group_by(SEAL_ID) %>%
@@ -77,16 +93,20 @@ head(dsights)
 
 ## Clean Data
 
+There is a difference in the records, depending on the 1960-1980s CMR study versus records from the 1990s - 2000s CMR study (separate projects) and data record keeping had updated in the process. 
+For example, the recording of tag_type column to denote whether seals were branded, tagged or both. 
+We only included branded seals so MASTER_TAG_TYPE == "T" had to be excluded for newer dataset (post 1980). The seals in the earlier dataset were all branded.
+
 ```{r}
 dsights$AGE_CLASS_ID[is.na(dsights$AGE_CLASS_ID)] <- 0
 
 dsights <- dsights%>%
   mutate("ADULT"= if_else(AGE>=6|AGE_CLASS_ID == 40, TRUE,FALSE))%>%
   mutate(AGE_CLASS_ID= if_else(ADULT == "TRUE" & Month %in% c(8:11), 41, AGE_CLASS_ID)) %>% #seen breeding
-  mutate(BAD= if_else(MASTER_TAG_TYPE == "T" & TAG_Season > 1980, TRUE, FALSE)) %>%
-  filter(BAD==FALSE)%>%
-  mutate(BAD= if_else(MASTER_TAG_TYPE == "#N/A" & TAG_Season > 1980, TRUE, FALSE)) %>%
-  filter(BAD==FALSE)
+  mutate(EXCLUDE= if_else(MASTER_TAG_TYPE == "T" & TAG_Season > 1980, TRUE, FALSE)) %>%
+  filter(EXCLUDE==FALSE)%>%
+  mutate(EXCLUDE= if_else(MASTER_TAG_TYPE == "#N/A" & TAG_Season > 1980, TRUE, FALSE)) %>%
+  filter(EXCLUDE==FALSE)
 head(dsights)
 ```
 
@@ -97,12 +117,14 @@ length(unique(dsights$SEAL_ID))
 ```
 
 ## Female subset
+
 ```{r}
 dsights2.F <- dsights%>%
   filter(MASTER_SEX=="F")
 
 length(unique(dsights2.F$SEAL_ID))
 ```
+
 ## 1980 subset
 
 1980 subset
@@ -116,6 +138,7 @@ length(unique(dsights2.F.80$SEAL_ID))
 ```{r}
 summary(dsights2.F.80$Season)
 ```
+
 ```{r}
 dsights2.F.80.unique <- dsights2.F.80 %>%
   group_by(SEAL_ID) %>%
@@ -133,21 +156,13 @@ ggplot(dsights2.F.80.unique,aes(TAG_Season))+
 
 
 
-
-
-# Capture Histories1 (CH)
+# Capture Histories (CH)
 
 Make encounter history data frame
-These steps are documented in numbers to check the data comes through correctly.
 ```{r}
 CH_full <- dsights2.F.80%>%
   select(SEAL_ID,Season,AGE_CLASS_ID,ADULT)
-head(CH_full )
-```
 
-
-
-```{r}
 #states: seen juvenile (1), seen breeding (2) + adults (not seen breeding also 2)
 CH_full <- CH_full %>%
   mutate(Breed = if_else(AGE_CLASS_ID==41, TRUE, FALSE))%>%
@@ -165,16 +180,11 @@ CH_full <- CH_full %>%
 table(CH_full$Season)
 ```
 
-```{r}
-head(CH_full)
-```
+
 
 ```{r}
 df_full <- CH_full 
-```
 
-```{r}
-# Assuming df is the original data frame with columns 'SEAL_ID', 'Season', and 'State'
 # Specify the start and end seasons
 start_season <- min(1981)
 end_season <- max(2024) #df_full$Season
@@ -236,10 +246,13 @@ ch_transformed_full <- ch_matrix_full %>%
 ```
 
 
-Check for example
+Check for example:
+This individual was first marked in 1997, remained a juvenile and observed until 1999, missed one year, seen as an adult from 2001 onwards, with some years missing before the last record of seen adult in 2006.
+
+"ch_transformed_full" reformats this to be in a vector of just 0/1/2 numericals
 ```{r}
-ch_matrix_full[3034,]
-ch_transformed_full[3034,]
+ch_matrix_full[3038,]
+ch_transformed_full[3038,]
 ```
 
 
