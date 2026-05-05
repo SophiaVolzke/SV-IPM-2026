@@ -13,7 +13,7 @@ The overlap of Southern Ocean sea ice expanding into the key foraging area (red)
 
 Hindell, M. A., McMahon, C. R., Van Den Hoff, J., Thalmann, S., Carlyon, K., & Wotherspoon, S. (2025). The ongoing decrease in numbers of breeding female southern elephant seals (*Mirounga leonina* L.) at Macquarie Island. *Antarctic Science*, 1-9. <https://doi.org/10.1017/S0954102025000161>
 
-Steketee, A., Chua, S., & Commonwealth of Australia. (2023). Nilas Software - mapping tool for displaying multiple layers of physical and biogeochemical variables in the Southern Ocean, Ver. 1. Accessed 22/12/2023 2023. Retrieved from <http://dx.doi.org/doi:10.26179/qh66-7p96>
+Steketee, A., Chua, S., & Commonwealth of Australia. (2023). Nilas Software - mapping tool for displaying multiple layers of physical and biogeochemical variables in the Southern Ocean, Ver. 1. Accessed 22/12/2023. Retrieved from <http://dx.doi.org/doi:10.26179/qh66-7p96>
 
 **Base Map:**
 
