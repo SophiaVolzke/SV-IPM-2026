@@ -1,0 +1,20 @@
+---
+title: "IPM-Figure1"
+author: "Sophia Volzke"
+date: "2026-05-05"
+output: html_document
+---
+
+<img src="Figure1.gif" alt="Figure-1"/>
+
+The overlap of Southern Ocean sea ice expanding into the key foraging area (red) of adult female southern elephant seals tracked from Macquarie Island during their post-moult foraging trip (March -- October). Tracking data are summarised into a spatial polygon based on the number of seal days spent per 50 x 50 km grid cell, published by Hindell et al. (2025). Winter average 25km NSIDC Sea-Ice Concentration extracted from Nilas Software at the Australian Antarctic Data Centre (Steketee, Chua, & Commonwealth of Australia 2023).
+
+**References:**
+
+Hindell, M. A., McMahon, C. R., Van Den Hoff, J., Thalmann, S., Carlyon, K., & Wotherspoon, S. (2025). The ongoing decrease in numbers of breeding female southern elephant seals (*Mirounga leonina* L.) at Macquarie Island. *Antarctic Science*, 1-9. <https://doi.org/10.1017/S0954102025000161>
+
+Steketee, A., Chua, S., & Commonwealth of Australia. (2023). Nilas Software - mapping tool for displaying multiple layers of physical and biogeochemical variables in the Southern Ocean, Ver. 1. Accessed 22/12/2023 2023. Retrieved from <http://dx.doi.org/doi:10.26179/qh66-7p96>
+
+**Base Map:**
+
+Matsuoka, K., Skoglund, A., & Roth, G. (2018). Quantarctica [Data set]. Norwegian Polar Institute. <https://doi.org/10.21334/npolar.2018.8516e961>
