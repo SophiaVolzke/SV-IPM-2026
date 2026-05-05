@@ -7,6 +7,8 @@ output: html_document
 
 <img src="Figure1.gif" alt="Figure-1"/>
 
+![GIF](https://github.com/SophiaVolzke/SV-IPM-2026/blob/main/Assets/Figure1.gif)
+
 The overlap of Southern Ocean sea ice expanding into the key foraging area (red) of adult female southern elephant seals tracked from Macquarie Island during their post-moult foraging trip (March -- October). Tracking data are summarised into a spatial polygon based on the number of seal days spent per 50 x 50 km grid cell, published by Hindell et al. (2025). Winter average 25km NSIDC Sea-Ice Concentration extracted from Nilas Software at the Australian Antarctic Data Centre (Steketee, Chua, & Commonwealth of Australia 2023).
 
 **References:**
